@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercado da Copa | Brechó Esportivo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        copa: '#1A8C3C',
+                        gold: '#D4AF37',
+                        darkgreen: '#0D4F1F'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        .carrinho-flutuante { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .carrinho-flutuante .badge { position: absolute; top: -8px; right: -8px; background: #D4AF37; color: #0D4F1F; font-size: 10px; font-weight: bold; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .carrinho-modal { position: fixed; bottom: 80px; right: 20px; width: 380px; max-height: 500px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; overflow: hidden; display: none; z-index: 1001; }
+        .carrinho-modal.active { display: block; }
+        .carrinho-modal .header { background: #1A8C3C; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .carrinho-modal .header h3 { font-weight: 600; }
+        .carrinho-modal .header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        .carrinho-modal .conteudo { padding: 16px 20px; max-height: 320px; overflow-y: auto; }
+        .carrinho-modal .footer { border-top: 1px solid #e5e7eb; padding: 16px 20px; background: #f9fafb; }
+        .carrinho-modal .footer .total { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 12px; }
+        .carrinho-modal .footer .total span:last-child { color: #1A8C3C; }
+        .carrinho-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+        .carrinho-item:last-child { border-bottom: none; }
+        .carrinho-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+        .carrinho-item .info { flex: 1; }
+        .carrinho-item .info h4 { font-weight: 600; font-size: 14px; }
+        .carrinho-item .info p { font-size: 12px; color: #6b7280; }
+        .carrinho-item .qtd-control { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+        .carrinho-item .qtd-control button { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #d1d5db; background: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+        .carrinho-item .qtd-control button:hover { background: #f3f4f6; }
+        .carrinho-item .qtd-control span { width: 24px; text-align: center; font-weight: 500; }
+        .carrinho-item .subtotal { font-weight: bold; font-size: 14px; color: #1A8C3C; min-width: 60px; text-align: right; }
+        .btn-finalizar { width: 100%; background: #1A8C3C; color: white; font-weight: 600; padding: 12px; border: none; border-radius: 12px; cursor: pointer; transition: background 0.3s; }
+        .btn-finalizar:hover { background: #0D4F1F; }
+        .btn-remover { background: none; border: none; color: #ef4444; font-size: 12px; cursor: pointer; padding: 2px 8px; }
+        .btn-remover:hover { text-decoration: underline; }
+        .notificacao { position: fixed; bottom: 90px; right: 20px; padding: 12px 24px; border-radius: 12px; color: white; font-weight: 500; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; }
+        .notificacao.sucesso { background: #1A8C3C; }
+        .notificacao.erro { background: #ef4444; }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100px); opacity: 0; } }
+        .login-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .login-modal-overlay.active { display: flex; }
+        .login-modal {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .login-modal h2 { font-size: 24px; font-weight: 700; color: #0D4F1F; margin-bottom: 4px; }
+        .login-modal p { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+        .login-modal input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border 0.3s;
+            background: #f9fafb;
+        }
+        .login-modal input:focus { border-color: #1A8C3C; background: white; }
+        .login-modal .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #1A8C3C;
+            color: white;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 16px;
+        }
+        .login-modal .btn-login:hover { background: #0D4F1F; }
+        .login-modal .btn-cadastro {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            color: #1A8C3C;
+            font-weight: 600;
+            border: 2px solid #1A8C3C;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            margin-top: 8px;
+        }
+        .login-modal .btn-cadastro:hover { background: #1A8C3C; color: white; }
+        .login-modal .close-btn { float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280; }
+        .login-modal .close-btn:hover { color: #1f2937; }
+        .login-modal .toggle-link { text-align: center; margin-top: 16px; font-size: 14px; color: #6b7280; }
+        .login-modal .toggle-link a { color: #1A8C3C; font-weight: 600; cursor: pointer; }
+        .login-modal .toggle-link a:hover { text-decoration: underline; }
+        .login-modal .error-msg { color: #ef4444; font-size: 13px; margin-top: -8px; margin-bottom: 12px; display: none; }
+        .login-modal .loading { opacity: 0.6; pointer-events: none; }
+    </style>
+</head>
+<body class="bg-gray-50 font-poppins">
+
+    <!-- BANNER PROMOCIONAL -->
+    <div class="bg-gradient-to-r from-darkgreen via-copa to-gold py-3 text-center text-white font-bold text-sm">
+        <span class="inline-block md:hidden">🏆 BRECHÓ DA COPA — Troque e economize!</span>
+        <span class="hidden md:inline-block">🏆 MERCADO DA COPA — Camisas históricas, bonés e casacos. Frete grátis acima de R$149!</span>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="index.html" class="flex items-baseline gap-1">
+                <span class="text-2xl md:text-3xl font-black text-copa">⚽ MERCADO</span>
+                <span class="text-2xl md:text-3xl font-black text-darkgreen">DA COPA</span>
+            </a>
+            <nav class="hidden md:flex gap-8">
+                <button onclick="filtrarPorCategoria('Camisas')" class="text-gray-600 hover:text-copa font-medium transition">Camisas</button>
+                <button onclick="filtrarPorCategoria('Bonés')" class="text-gray-600 hover:text-copa font-medium transition">Bonés</button>
+                <button onclick="filtrarPorCategoria('Casacos')" class="text-gray-600 hover:text-copa font-medium transition">Casacos</button>
+                <button onclick="abrirAnunciar()" class="text-gray-600 hover:text-copa font-medium transition">Anunciar</button>
+            </nav>
+            <div class="flex items-center gap-3">
+                <button onclick="abrirLoginModal()" class="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-copa/10 transition relative">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span id="user-indicator" class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-300 rounded-full"></span>
+                </button>
+                <button onclick="toggleCarrinho()" class="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center relative hover:bg-copa/10 transition">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6M12 21v-6"></path>
+                    </svg>
+                    <span id="cart-badge" class="badge">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MODAL DE LOGIN -->
+    <div id="login-modal-overlay" class="login-modal-overlay">
+        <div class="login-modal">
+            <button class="close-btn" onclick="fecharLoginModal()">✕</button>
+            <div id="login-form-container">
+                <h2>🔐 Acesse sua conta</h2>
+                <p>Entre com seu e-mail e senha cadastrados</p>
+                <div id="login-error" class="error-msg"></div>
+                <input type="email" id="login-email" placeholder="Digite seu e-mail">
+                <input type="password" id="login-senha" placeholder="Digite sua senha">
+                <button class="btn-login" id="btn-login" onclick="fazerLogin()">Entrar</button>
+                <div class="toggle-link">
+                    Não tem conta? <a onclick="mostrarCadastro()">Criar conta grátis</a>
+                </div>
+            </div>
+            <div id="cadastro-form-container" style="display:none;">
+                <h2>📝 Criar conta</h2>
+                <p>Preencha os dados para criar sua conta</p>
+                <div id="cadastro-error" class="error-msg"></div>
+                <input type="text" id="cadastro-nome" placeholder="Nome completo">
+                <input type="email" id="cadastro-email" placeholder="Digite seu e-mail">
+                <input type="password" id="cadastro-senha" placeholder="Digite sua senha (mínimo 6 caracteres)">
+                <input type="password" id="cadastro-confirmar" placeholder="Confirmar senha">
+                <button class="btn-login" id="btn-cadastro" onclick="fazerCadastro()">Criar conta</button>
+                <div class="toggle-link">
+                    Já tem conta? <a onclick="mostrarLogin()">Fazer login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-darkgreen to-copa p-8 mb-12 shadow-xl">
+            <div class="relative z-10 max-w-md">
+                <div class="inline-block bg-white/20 rounded-full px-3 py-1 text-xs font-bold text-gold mb-3 backdrop-blur">🔥 Coleção histórica</div>
+                <h2 class="text-3xl md:text-4xl font-black text-white leading-tight">Camisas de seleções<br>com até 50% OFF</h2>
+                <p class="text-white/80 text-sm mt-3">Itens originais, raros e revisados por colecionadores.</p>
+                <button onclick="filtrarPorCategoria('Camisas')" class="inline-block mt-6 bg-gold text-darkgreen font-bold px-6 py-3 rounded-full shadow-lg hover:scale-105 transition transform">
+                    Explorar acervo →
+                </button>
+            </div>
+            <div class="absolute bottom-0 right-0 opacity-10">
+                <svg class="w-48 h-48 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L15 8.5L22 9.5L17 14L18.5 21L12 17.5L5.5 21L7 14L2 9.5L9 8.5L12 2Z"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4 justify-between items-center mb-10">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-black text-darkgreen">🏷️ Itens do Brechó</h1>
+                <p class="text-gray-500 text-sm">Produtos anunciados por colecionadores</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="abrirAnunciar()" class="bg-copa text-white font-bold px-5 py-2 rounded-full shadow hover:bg-darkgreen transition text-sm">
+                    + Anunciar item
+                </button>
+                <button onclick="abrirTroca()" class="border border-copa text-copa font-bold px-5 py-2 rounded-full hover:bg-copa/10 transition text-sm">
+                    🔄 Propor troca
+                </button>
+            </div>
+        </div>
+
+        <div id="categorias-container" class="mb-6">
+            <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+                <button onclick="filtrarPorCategoria('')" class="categoria-btn-all bg-copa text-white font-semibold py-2 px-5 rounded-full transition hover:bg-darkgreen shadow-md">
+                    🌟 Todas
+                </button>
+                <button onclick="filtrarPorCategoria('Camisas')" class="categoria-btn-Camisas bg-gray-100 hover:bg-copa/20 text-gray-700 font-semibold py-2 px-5 rounded-full transition flex items-center gap-2">
+                    <span>⚽</span> Camisas
+                </button>
+                <button onclick="filtrarPorCategoria('Bonés')" class="categoria-btn-Bonés bg-gray-100 hover:bg-copa/20 text-gray-700 font-semibold py-2 px-5 rounded-full transition flex items-center gap-2">
+                    <span>🧢</span> Bonés
+                </button>
+                <button onclick="filtrarPorCategoria('Casacos')" class="categoria-btn-Casacos bg-gray-100 hover:bg-copa/20 text-gray-700 font-semibold py-2 px-5 rounded-full transition flex items-center gap-2">
+                    <span>🧥</span> Casacos
+                </button>
+            </div>
+        </div>
+
+        <div class="text-sm text-gray-500 mb-4">
+            <span id="quantidade-produtos">0</span> produtos encontrados
+        </div>
+
+        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div class="col-span-full text-center py-12 text-gray-400">🔄 Carregando acervo esportivo...</div>
+        </div>
+
+        <div class="mt-16 bg-white rounded-3xl border border-gray-200 p-8 shadow-sm">
+            <div class="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                <div class="w-20 h-20 bg-copa/20 rounded-full flex items-center justify-center">
+                    <span class="text-4xl">🔄</span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-darkgreen">Quer vender ou trocar itens da copa?</h3>
+                    <p class="text-gray-500 text-sm">Anuncie suas camisas antigas, bonés raros ou casacos de seleções. Controle seu estoque e veja pedidos.</p>
+                </div>
+                <button onclick="abrirAnunciar()" class="whitespace-nowrap bg-gold text-darkgreen font-bold px-8 py-3 rounded-full shadow hover:bg-amber-500 transition">
+                    Começar a vender
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-20 bg-darkgreen text-white py-12">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <div class="text-2xl font-black mb-3">⚽ MERCADO DA COPA</div>
+            <p class="text-white/70 text-sm">Brechó colaborativo — Venda, troque e economize</p>
+            <div class="border-t border-white/20 mt-8 pt-8 text-white/50 text-xs">
+                Feito para colecionadores | Compre e venda com segurança
+            </div>
+        </div>
+    </footer>
+
+    <!-- CARRINHO MODAL -->
+    <div id="carrinho-modal" class="carrinho-modal">
+        <div class="header">
+            <h3>🛒 Meu Carrinho</h3>
+            <button onclick="toggleCarrinho()">✕</button>
+        </div>
+        <div id="carrinho-conteudo" class="conteudo">
+            <div class="text-center py-8 text-gray-400">🛒 Seu carrinho está vazio</div>
+        </div>
+        <div id="carrinho-footer" class="footer" style="display:none;">
+            <div class="total">
+                <span>Total:</span>
+                <span id="carrinho-total">R$ 0,00</span>
+            </div>
+            <button class="btn-finalizar" onclick="finalizarCompra()">Finalizar Compra</button>
+        </div>
+    </div>
+
+    <div class="carrinho-flutuante">
+        <button onclick="toggleCarrinho()" class="bg-copa text-white p-4 rounded-full shadow-lg hover:bg-darkgreen transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6M12 21v-6"></path>
+            </svg>
+            <span id="carrinho-flutuante-count" class="badge">0</span>
+        </button>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURAÇÃO DA API - URL ATUALIZADA
+        // ============================================
+        const API_BASE_URL = 'https://backend-copaa-4ba9.vercel.app';
+
+        let usuarioLogado = false;
+        let nomeUsuario = '';
+        let tokenUsuario = '';
+
+        // ============================================
+        // FUNÇÕES DE LOGIN/CADASTRO
+        // ============================================
+
+        function abrirLoginModal() {
+            if (usuarioLogado) {
+                if (confirm(`👋 Deseja sair da sua conta "${nomeUsuario}"?`)) {
+                    usuarioLogado = false;
+                    nomeUsuario = '';
+                    tokenUsuario = '';
+                    localStorage.removeItem('cliente_token');
+                    localStorage.removeItem('cliente_nome');
+                    localStorage.removeItem('cliente_id');
+                    atualizarIndicadorUsuario();
+                    mostrarNotificacao('👋 Você saiu da conta', 'sucesso');
+                }
+                return;
+            }
+            document.getElementById('login-modal-overlay').classList.add('active');
+            mostrarLogin();
+        }
+
+        function fecharLoginModal() {
+            document.getElementById('login-modal-overlay').classList.remove('active');
+            document.getElementById('login-error').style.display = 'none';
+            document.getElementById('cadastro-error').style.display = 'none';
+            document.getElementById('btn-login').textContent = 'Entrar';
+            document.getElementById('btn-login').classList.remove('loading');
+            document.getElementById('btn-cadastro').textContent = 'Criar conta';
+            document.getElementById('btn-cadastro').classList.remove('loading');
+        }
+
+        function mostrarLogin() {
+            document.getElementById('login-form-container').style.display = 'block';
+            document.getElementById('cadastro-form-container').style.display = 'none';
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        function mostrarCadastro() {
+            document.getElementById('login-form-container').style.display = 'none';
+            document.getElementById('cadastro-form-container').style.display = 'block';
+            document.getElementById('cadastro-error').style.display = 'none';
+        }
+
+        async function fazerLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const senha = document.getElementById('login-senha').value.trim();
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('btn-login');
+
+            if (!email || !senha) {
+                errorEl.textContent = '⚠️ Preencha e-mail e senha!';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            btn.textContent = '🔄 Entrando...';
+            btn.classList.add('loading');
+            errorEl.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erro ao fazer login');
+                }
+
+                usuarioLogado = true;
+                nomeUsuario = data.usuario.nome;
+                tokenUsuario = data.token;
+                localStorage.setItem('cliente_token', data.token);
+                localStorage.setItem('cliente_nome', data.usuario.nome);
+                localStorage.setItem('cliente_id', data.usuario.id);
+
+                fecharLoginModal();
+                atualizarIndicadorUsuario();
+                mostrarNotificacao(`✅ Bem-vindo(a), ${nomeUsuario}!`, 'sucesso');
+
+            } catch (error) {
+                errorEl.textContent = error.message || '❌ E-mail ou senha incorretos';
+                errorEl.style.display = 'block';
+                btn.textContent = 'Entrar';
+                btn.classList.remove('loading');
+            }
+        }
+
+        async function fazerCadastro() {
+            const nome = document.getElementById('cadastro-nome').value.trim();
+            const email = document.getElementById('cadastro-email').value.trim();
+            const senha = document.getElementById('cadastro-senha').value;
+            const confirmar = document.getElementById('cadastro-confirmar').value;
+            const errorEl = document.getElementById('cadastro-error');
+            const btn = document.getElementById('btn-cadastro');
+
+            console.log('📝 Tentando cadastrar:', { nome, email });
+
+            if (!nome || !email || !senha || !confirmar) {
+                errorEl.textContent = '⚠️ Preencha todos os campos!';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (senha !== confirmar) {
+                errorEl.textContent = '❌ As senhas não coincidem!';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (senha.length < 6) {
+                errorEl.textContent = '❌ A senha deve ter pelo menos 6 caracteres!';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            btn.textContent = '🔄 Criando conta...';
+            btn.classList.add('loading');
+            errorEl.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, email, senha })
+                });
+
+                const data = await response.json();
+                console.log('📥 Resposta da API:', data);
+
+                if (!response.ok) {
+                    if (data.tipo === 'rate_limit') {
+                        errorEl.textContent = '⏳ ' + data.error;
+                        errorEl.style.display = 'block';
+                        btn.textContent = 'Criar conta';
+                        btn.classList.remove('loading');
+                        return;
+                    }
+                    throw new Error(data.error || 'Erro ao criar conta');
+                }
+
+                mostrarNotificacao('✅ Conta criada com sucesso! Faça login.', 'sucesso');
+                document.getElementById('login-email').value = email;
+                document.getElementById('login-senha').value = '';
+                mostrarLogin();
+                document.getElementById('cadastro-nome').value = '';
+                document.getElementById('cadastro-email').value = '';
+                document.getElementById('cadastro-senha').value = '';
+                document.getElementById('cadastro-confirmar').value = '';
+                btn.textContent = 'Criar conta';
+                btn.classList.remove('loading');
+
+            } catch (error) {
+                console.error('❌ Erro no cadastro:', error);
+                errorEl.textContent = error.message || '❌ Erro ao criar conta. Tente novamente.';
+                errorEl.style.display = 'block';
+                btn.textContent = 'Criar conta';
+                btn.classList.remove('loading');
+            }
+        }
+
+        function atualizarIndicadorUsuario() {
+            const indicator = document.getElementById('user-indicator');
+            if (usuarioLogado) {
+                indicator.className = 'absolute -bottom-1 -right-1 w-3 h-3 bg-copa rounded-full';
+                document.querySelector('[onclick="abrirLoginModal()"]').title = `Logado como: ${nomeUsuario}`;
+            } else {
+                indicator.className = 'absolute -bottom-1 -right-1 w-3 h-3 bg-gray-300 rounded-full';
+                document.querySelector('[onclick="abrirLoginModal()"]').title = 'Clique para fazer login';
+            }
+        }
+
+        function verificarSessao() {
+            const token = localStorage.getItem('cliente_token');
+            const nome = localStorage.getItem('cliente_nome');
+            if (token && nome) {
+                usuarioLogado = true;
+                nomeUsuario = nome;
+                tokenUsuario = token;
+            }
+            atualizarIndicadorUsuario();
+        }
+
+        // ============================================
+        // DETECTAR CATEGORIA
+        // ============================================
+        function detectarCategoria(nome) {
+            const nomeLower = nome.toLowerCase();
+            if (nomeLower.includes('camisa') || nomeLower.includes('camiseta')) return 'Camisas';
+            if (nomeLower.includes('boné') || nomeLower.includes('bone')) return 'Bonés';
+            if (nomeLower.includes('casaco') || nomeLower.includes('cascao') || nomeLower.includes('jaqueta') || nomeLower.includes('agasalho')) return 'Casacos';
+            return 'Camisas';
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+
+        function formatPrice(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+        }
+
+        function getSelecaoEmoji(selecao) {
+            const emojis = {
+                'Brasil': '🇧🇷',
+                'Alemanha': '🇩🇪',
+                'Argentina': '🇦🇷',
+                'França': '🇫🇷',
+                'Holanda': '🇳🇱',
+                'Catar': '🇶🇦',
+                'Rússia': '🇷🇺'
+            };
+            return emojis[selecao] || '⚽';
+        }
+
+        function getIconePorCategoria(categoria) {
+            const icones = { 'Camisas': '⚽', 'Bonés': '🧢', 'Casacos': '🧥' };
+            return icones[categoria] || '🏷️';
+        }
+
+        function mostrarNotificacao(mensagem, tipo = 'sucesso') {
+            const notif = document.createElement('div');
+            notif.className = `notificacao ${tipo}`;
+            notif.textContent = mensagem;
+            document.body.appendChild(notif);
+            setTimeout(() => {
+                notif.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
+        }
+
+        // ============================================
+        // CARRINHO
+        // ============================================
+
+        let carrinhoItens = [];
+        let carrinhoQuantidade = 0;
+        let categoriaSelecionada = '';
+        let todosProdutos = [];
+
+        function toggleCarrinho() {
+            const modal = document.getElementById('carrinho-modal');
+            modal.classList.toggle('active');
+            if (modal.classList.contains('active')) renderizarCarrinho();
+        }
+
+        function renderizarCarrinho() {
+            const conteudo = document.getElementById('carrinho-conteudo');
+            const footer = document.getElementById('carrinho-footer');
+
+            if (carrinhoItens.length === 0) {
+                conteudo.innerHTML = '<div class="text-center py-8 text-gray-400">🛒 Seu carrinho está vazio</div>';
+                footer.style.display = 'none';
+                document.getElementById('carrinho-total').textContent = 'R$ 0,00';
+                return;
+            }
+
+            footer.style.display = 'block';
+            let html = '';
+            carrinhoItens.forEach((item, index) => {
+                const subtotal = item.preco * item.quantidade;
+                html += `
+                    <div class="carrinho-item">
+                        <img src="${item.imagem || 'https://placehold.co/60x60/1A8C3C/white?text=Item'}" alt="${item.nome}">
+                        <div class="info">
+                            <h4>${item.nome}</h4>
+                            <p>${formatPrice(item.preco)}</p>
+                            <div class="qtd-control">
+                                <button onclick="alterarQuantidade(${index}, ${item.quantidade - 1})">-</button>
+                                <span>${item.quantidade}</span>
+                                <button onclick="alterarQuantidade(${index}, ${item.quantidade + 1})">+</button>
+                                <button class="btn-remover" onclick="removerItem(${index})">Remover</button>
+                            </div>
+                        </div>
+                        <div class="subtotal">${formatPrice(subtotal)}</div>
+                    </div>
+                `;
+            });
+
+            conteudo.innerHTML = html;
+            const total = carrinhoItens.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
+            document.getElementById('carrinho-total').textContent = formatPrice(total);
+        }
+
+        function alterarQuantidade(index, novaQuantidade) {
+            if (novaQuantidade < 1) { removerItem(index); return; }
+            carrinhoItens[index].quantidade = novaQuantidade;
+            carrinhoQuantidade = carrinhoItens.reduce((sum, item) => sum + item.quantidade, 0);
+            renderizarCarrinho();
+            atualizarBadge();
+        }
+
+        function removerItem(index) {
+            carrinhoItens.splice(index, 1);
+            carrinhoQuantidade = carrinhoItens.reduce((sum, item) => sum + item.quantidade, 0);
+            renderizarCarrinho();
+            atualizarBadge();
+            mostrarNotificacao('🗑️ Item removido do carrinho', 'sucesso');
+        }
+
+        function adicionarAoCarrinho(produtoId) {
+            if (!usuarioLogado) {
+                if (confirm('🔐 Faça login para adicionar ao carrinho.')) {
+                    abrirLoginModal();
+                }
+                return;
+            }
+
+            const produto = todosProdutos.find(p => p.id == produtoId);
+            if (!produto) {
+                mostrarNotificacao('❌ Produto não encontrado', 'erro');
+                return;
+            }
+
+            const existente = carrinhoItens.find(item => item.id == produtoId);
+            if (existente) {
+                existente.quantidade += 1;
+            } else {
+                carrinhoItens.push({
+                    id: produto.id,
+                    nome: produto.nome,
+                    preco: produto.preco,
+                    imagem: produto.imagem_url,
+                    quantidade: 1
+                });
+            }
+
+            carrinhoQuantidade = carrinhoItens.reduce((sum, item) => sum + item.quantidade, 0);
+            renderizarCarrinho();
+            atualizarBadge();
+            mostrarNotificacao(`✅ ${produto.nome} adicionado ao carrinho!`, 'sucesso');
+        }
+
+        function finalizarCompra() {
+            if (!usuarioLogado) {
+                if (confirm('🔐 Faça login para finalizar a compra.')) {
+                    abrirLoginModal();
+                }
+                return;
+            }
+            if (carrinhoItens.length === 0) {
+                mostrarNotificacao('🛒 Seu carrinho está vazio!', 'erro');
+                return;
+            }
+            mostrarNotificacao('✅ Pedido finalizado com sucesso!', 'sucesso');
+            carrinhoItens = [];
+            carrinhoQuantidade = 0;
+            renderizarCarrinho();
+            atualizarBadge();
+            toggleCarrinho();
+        }
+
+        function abrirAnunciar() {
+            if (!usuarioLogado) {
+                if (confirm('🔐 Faça login para anunciar um item.')) { abrirLoginModal(); }
+                return;
+            }
+            mostrarNotificacao('📢 Vá para a página de cadastro para anunciar!', 'sucesso');
+        }
+
+        function abrirTroca() {
+            if (!usuarioLogado) {
+                if (confirm('🔐 Faça login para propor troca.')) { abrirLoginModal(); }
+                return;
+            }
+            mostrarNotificacao('🔄 Vá para a página de trocas!', 'sucesso');
+        }
+
+        function atualizarBadge() {
+            const badgeHeader = document.getElementById('cart-badge');
+            if (badgeHeader) {
+                badgeHeader.textContent = carrinhoQuantidade;
+                badgeHeader.style.display = carrinhoQuantidade > 0 ? 'flex' : 'none';
+            }
+            const badgeFloat = document.getElementById('carrinho-flutuante-count');
+            if (badgeFloat) {
+                badgeFloat.textContent = carrinhoQuantidade;
+                badgeFloat.style.display = carrinhoQuantidade > 0 ? 'flex' : 'none';
+            }
+        }
+
+        // ============================================
+        // FILTRAR PRODUTOS
+        // ============================================
+
+        window.filtrarPorCategoria = function(categoria) {
+            categoriaSelecionada = categoria;
+            document.querySelectorAll('[class^="categoria-btn-"]').forEach(btn => {
+                btn.classList.remove('bg-copa', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            });
+            if (categoria === '') {
+                document.querySelector('.categoria-btn-all')?.classList.add('bg-copa', 'text-white');
+            } else {
+                const btn = document.querySelector(`.categoria-btn-${categoria.replace(/\s/g, '')}`);
+                if (btn) {
+                    btn.classList.remove('bg-gray-100', 'text-gray-700');
+                    btn.classList.add('bg-copa', 'text-white');
+                }
+            }
+            aplicarFiltro();
+        };
+
+        function aplicarFiltro() {
+            const container = document.getElementById('products-grid');
+            const contador = document.getElementById('quantidade-produtos');
+            let produtosFiltrados = [...todosProdutos];
+            if (categoriaSelecionada) {
+                produtosFiltrados = produtosFiltrados.filter(p => p.categoria === categoriaSelecionada);
+            }
+            contador.textContent = produtosFiltrados.length;
+            if (produtosFiltrados.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200">
+                        <span class="text-6xl block mb-4">🏆</span>
+                        <p class="font-medium text-gray-600">Nenhum item encontrado nesta categoria.</p>
+                        <button onclick="filtrarPorCategoria('')" class="inline-block mt-4 bg-copa text-white px-6 py-2 rounded-full text-sm hover:bg-darkgreen transition">
+                            Ver todos os produtos
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            renderizarProdutos(produtosFiltrados, container);
+        }
+
+        function renderizarProdutos(produtos, container) {
+            container.innerHTML = produtos.map(prod => `
+                <div class="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+                    <div class="block">
+                        <div class="h-52 bg-gray-100 flex items-center justify-center p-4 relative">
+                            <img src="${prod.imagem_url || 'https://placehold.co/300x300/1A8C3C/white?text=Camisa+Copa'}" 
+                                 class="h-full w-full object-contain group-hover:scale-105 transition" 
+                                 alt="${prod.nome}"
+                                 onerror="this.src='https://placehold.co/300x300/1A8C3C/white?text=Erro+Imagem'">
+                            <span class="absolute top-2 left-2 bg-copa/90 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                                ${getIconePorCategoria(prod.categoria)} ${prod.categoria || 'Item'}
+                            </span>
+                            ${prod.ano_copa ? `<span class="absolute top-2 right-2 bg-gold text-darkgreen text-xs font-bold px-2 py-1 rounded-full">${prod.ano_copa}</span>` : ''}
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-xs font-semibold text-copa">${getSelecaoEmoji(prod.selecao)} ${prod.selecao || 'Seleção'}</div>
+                                ${prod.aceita_troca ? '<span class="text-xs text-gold font-semibold">🔄 Aceita troca</span>' : '<span class="text-xs text-gray-400">💰 Venda</span>'}
+                            </div>
+                            <h3 class="font-bold text-gray-800 mt-2 line-clamp-1">${prod.nome}</h3>
+                            <div class="text-2xl font-black text-darkgreen mt-2">${formatPrice(prod.preco)}</div>
+                            <div class="flex items-center justify-between mt-2 text-xs">
+                                <span class="text-gray-500">📦 ${prod.estoque || 1} un.</span>
+                                <span class="text-copa font-medium">${prod.categoria || ''}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="adicionarAoCarrinho(${prod.id})" class="w-full bg-copa text-white font-semibold py-3 hover:bg-darkgreen transition">
+                        Adicionar ao carrinho
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // CARREGAR PRODUTOS
+        // ============================================
+
+        async function carregarProdutos() {
+            const container = document.getElementById('products-grid');
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/produtos`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                const produtosRaw = Array.isArray(data) ? data : (data.data || []);
+                todosProdutos = produtosRaw.map(p => ({
+                    ...p,
+                    categoria: p.categoria || detectarCategoria(p.nome)
+                }));
+                if (!todosProdutos || todosProdutos.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200">
+                            <span class="text-6xl block mb-4">🏆</span>
+                            <p class="font-medium text-gray-600">Nenhum item esportivo anunciado ainda.</p>
+                            <button onclick="abrirAnunciar()" class="inline-block mt-4 bg-copa text-white px-6 py-2 rounded-full text-sm">Anunciar primeiro item</button>
+                        </div>
+                    `;
+                    return;
+                }
+                aplicarFiltro();
+            } catch (error) {
+                console.error('Erro:', error);
+                container.innerHTML = `
+                    <div class="col-span-full text-center text-red-500 py-12">
+                        <p>❌ Erro ao carregar itens do brechó</p>
+                        <p class="text-xs text-gray-400 mt-2">${API_BASE_URL}</p>
+                        <button onclick="carregarProdutos()" class="inline-block mt-4 bg-copa text-white px-6 py-2 rounded-full text-sm hover:bg-darkgreen transition">🔄 Tentar novamente</button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // INICIALIZAR
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarSessao();
+            carregarProdutos();
+            atualizarBadge();
+
+            document.getElementById('login-modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) fecharLoginModal();
+            });
+
+            document.addEventListener('click', (e) => {
+                const modal = document.getElementById('carrinho-modal');
+                const btn = document.querySelector('.carrinho-flutuante');
+                if (modal.classList.contains('active') && !modal.contains(e.target) && !btn.contains(e.target)) {
+                    modal.classList.remove('active');
+                }
+            });
+
+            document.getElementById('login-senha').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') fazerLogin();
+            });
+            document.getElementById('cadastro-confirmar').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') fazerCadastro();
+            });
+        });
+
+        // Expor funções
+        window.adicionarAoCarrinho = adicionarAoCarrinho;
+        window.filtrarPorCategoria = filtrarPorCategoria;
+        window.toggleCarrinho = toggleCarrinho;
+        window.abrirLoginModal = abrirLoginModal;
+        window.fecharLoginModal = fecharLoginModal;
+        window.mostrarLogin = mostrarLogin;
+        window.mostrarCadastro = mostrarCadastro;
+        window.fazerLogin = fazerLogin;
+        window.fazerCadastro = fazerCadastro;
+        window.abrirAnunciar = abrirAnunciar;
+        window.abrirTroca = abrirTroca;
+        window.finalizarCompra = finalizarCompra;
+        window.alterarQuantidade = alterarQuantidade;
+        window.removerItem = removerItem;
+    </script>
+</body>
+</html>
